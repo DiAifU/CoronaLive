@@ -98,6 +98,15 @@ const getData = async (code) => {
         };
     }
 
+    Object.keys(formatedData).forEach(date => {
+        var yesterday = new Date(date).addDays(-1).toISOString().substring(0, 10);
+        Object.keys(formatedData[date]).forEach(category => {
+            if (formatedData[yesterday] && formatedData[yesterday][category]) {
+                formatedData[date][category].diff = formatedData[date][category][0].value - formatedData[yesterday][category][0].value
+            }
+        });
+    });
+
     return formatedData;
 }
 
@@ -139,8 +148,13 @@ const getListHtml = (formatedData) => {
     const formatedData = await getData(code);
     console.log(formatedData);
 
-    document.querySelector('#root').innerHTML = getListHtml(formatedData);
+    var root = document.querySelector('#root');
 
+    root.innerHTML = root.innerHTML + getListHtml(formatedData);
     var ctx = document.getElementById('chart').getContext('2d');
-    drawChart(ctx, formatedData);
+    drawChart(ctx, formatedData, false);
+
+    document.querySelector('#deltaCheckBox').addEventListener('change', e => {
+        drawChart(ctx, formatedData, e.target.checked);
+    });
 })()

@@ -2,7 +2,14 @@ import { Chart } from 'chart.js';
 import _ from 'lodash';
 import categoryIdToName from './categoryIdToName';
 
-const drawChart = (ctx, data) => {
+let _chart = null;
+
+const drawChart = (ctx, data, delta) => {
+
+  if (_chart !== null) {
+    _chart.clear();
+    _chart.destroy();
+  }
 
   const keys = _.sortBy(Object.keys(data));
 
@@ -12,12 +19,11 @@ const drawChart = (ctx, data) => {
       label: categoryIdToName[c],
       backgroundColor: stringToColour(c),
       borderColor: stringToColour(c),
-      data: keys.map((key) => data[key][c] ? data[key][c][0].value : null),
+      data: keys.map((key) => data[key][c] ? (delta ? data[key][c].diff : data[key][c][0].value) : null),
       borderWidth: 1
     })), d => d.data[d.data.length - 1]);
 
-
-  const chart = new Chart(ctx, {
+  _chart = new Chart(ctx, {
     // The type of chart we want to create
     type: 'line',
 
