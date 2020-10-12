@@ -49,7 +49,7 @@ const getData = async (code) => {
 
     let formatedData = {};
 
-    for (const date in raw_json) {
+    for (let date in raw_json) {
         const mergedData = {};
 
         raw_json[date].forEach(({
@@ -141,6 +141,16 @@ const getListHtml = (formatedData) => {
     return html;
 };
 
+const updateUrl = (queryString) => {
+    const url = window.location.href.split('?')[0];
+    if (queryString) {
+        history.pushState({}, null, `${url}?${queryString}`);
+    }
+    else {
+        history.pushState({}, null, url)
+    }
+}
+
 (async function() {
     var urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code') || 'FRA';
@@ -178,12 +188,8 @@ const getListHtml = (formatedData) => {
             urlParams.delete('hidden');
         }
 
-        if (urlParams.keys().next().value !== undefined) {
-            history.pushState({}, null, '/?' + urlParams.toString().replace(/%2C/g,","));
-        }
-        else {
-            history.pushState({}, null, '/');
-        }
+        updateUrl(urlParams.toString().replace(/%2C/g,","));
+
         updateChart(formatedData, delta, hiddenCurves);
     }
 
@@ -202,12 +208,7 @@ const getListHtml = (formatedData) => {
             delta = false;
         }
 
-        if (urlParams.keys().next().value !== undefined) {
-            history.pushState({}, null, '/?' + urlParams.toString());
-        }
-        else {
-            history.pushState({}, null, '/');
-        }
+        updateUrl(urlParams.toString().replace(/%2C/g,","));
 
         updateChart(formatedData, delta, hiddenCurves);
     });
