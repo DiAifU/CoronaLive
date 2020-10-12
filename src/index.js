@@ -2,7 +2,7 @@ var fetch = require('node-fetch');
 var _ = require('lodash');
 
 import categoryIdToName from './categoryIdToName';
-import { drawChart } from  './graph';
+import { buildChart, updateChart } from  './graph';
 
 Date.prototype.addDays = function(days) {
     var date = new Date(this.valueOf());
@@ -13,7 +13,6 @@ Date.prototype.addDays = function(days) {
 const getData = async (code) => {
     const resp = await fetch('https://raw.githubusercontent.com/opencovid19-fr/data/master/dist/chiffres-cles.json');
     let raw_json = await resp.json();
-
     raw_json = _.filter(raw_json, a => a.code === code && a.source.nom !== 'OpenCOVID19-fr');
 
     // Get important info
@@ -143,18 +142,76 @@ const getListHtml = (formatedData) => {
 };
 
 (async function() {
-    const code = 'FRA';
+    var urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code') || 'FRA';
+    let delta = urlParams.get('type') === 'delta';
+    let hiddenCurves = urlParams.has('hidden') ? urlParams.get('hidden').split(',') : [];
 
     const formatedData = await getData(code);
     console.log(formatedData);
 
-    var root = document.querySelector('#root');
+    // Set root inner HTML from built data 
+    const root = document.querySelector('#root');
+    root.innerHTML = root.innerHTML + getListHtml(formatedData);    
 
-    root.innerHTML = root.innerHTML + getListHtml(formatedData);
-    var ctx = document.getElementById('chart').getContext('2d');
-    drawChart(ctx, formatedData, false);
+    // Set delta checkbox state based on query param value (or default)
+    const deltaCheckbox = document.querySelector('#deltaCheckBox');
+    deltaCheckbox.checked = delta;
+    
+    // Create callback to be triggered when hidden categories changes
+    const onHiddenChanged = (type, hidden) => {
+        if (hidden) {
+            if (!hiddenCurves.includes(type)) {
+                hiddenCurves = [...hiddenCurves, type];
+            }
+        }
+        else {
+            if (hiddenCurves.includes(type)) {
+                hiddenCurves = hiddenCurves.filter(item => item !== type)
+            }
+        }
+        
+        if (hiddenCurves.length > 0) {
+            urlParams.set('hidden', hiddenCurves.join(','));
+        }
+        else {
+            urlParams.delete('hidden');
+        }
 
-    document.querySelector('#deltaCheckBox').addEventListener('change', e => {
-        drawChart(ctx, formatedData, e.target.checked);
+        if (urlParams.keys().next().value !== undefined) {
+            history.pushState({}, null, '/?' + urlParams.toString().replace(/%2C/g,","));
+        }
+        else {
+            history.pushState({}, null, '/');
+        }
+        updateChart(formatedData, delta, hiddenCurves);
+    }
+
+    // Get the context and build the chart
+    const ctx = document.getElementById('chart').getContext('2d');
+    buildChart(ctx, onHiddenChanged);
+
+    // Listen to delta checbox checked state changes
+    deltaCheckbox.addEventListener('change', e => {
+        if (e.target.checked) {
+            urlParams.set('type', 'delta');
+            delta = true;
+        }
+        else {
+            urlParams.delete('type');
+            delta = false;
+        }
+
+        if (urlParams.keys().next().value !== undefined) {
+            history.pushState({}, null, '/?' + urlParams.toString());
+        }
+        else {
+            history.pushState({}, null, '/');
+        }
+
+        updateChart(formatedData, delta, hiddenCurves);
     });
+
+    // Make initial update to set chart data
+    updateChart(formatedData, delta, hiddenCurves);
 })()

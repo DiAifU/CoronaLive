@@ -4,46 +4,58 @@ import categoryIdToName from './categoryIdToName';
 
 let _chart = null;
 
-const drawChart = (ctx, data, delta) => {
+const nameToCategoryId = _.invert(categoryIdToName);
 
-  if (_chart !== null) {
-    _chart.clear();
-    _chart.destroy();
-  }
-
-  const keys = _.sortBy(Object.keys(data));
-
-  const categories = _.union(_.flatMap(data, a => Object.keys(a)));
-  let datasets = _.orderBy(
-    categories.map(c => ({
-      label: categoryIdToName[c],
-      backgroundColor: stringToColour(c),
-      borderColor: stringToColour(c),
-      data: keys.map((key) => data[key][c] ? (delta ? data[key][c].diff : data[key][c][0].value) : null),
-      borderWidth: 1
-    })), d => d.data[d.data.length - 1]);
-
+const buildChart = (ctx, onHiddenChanged) => {
   _chart = new Chart(ctx, {
     // The type of chart we want to create
     type: 'line',
-
-    // The data for our dataset
-    data: {
-      labels: keys,
-      datasets: datasets
-    },
 
     // Configuration options go here
     options: {
       tooltips: {
         intersect: false,
         mode: 'index'
+      },
+      legend: {
+        onClick: (e, legendItem) => {
+          if (onHiddenChanged) {
+            var dataset = _chart.data.datasets[legendItem.datasetIndex];
+            onHiddenChanged(nameToCategoryId[dataset.label], dataset.hidden === false)
+          }
+        }
       }
     }
   });
 }
 
-var stringToColour = function(str) {
+const updateChart = (data, delta, hiddenCategories = []) => {
+  if (_chart === null) {
+    throw "Chart was not previously built";
+  }
+
+  const keys = _.sortBy(Object.keys(data));
+  const categories = _.union(_.flatMap(data, a => Object.keys(a)));
+
+  const datasets = _.orderBy(
+    categories.map(c => ({
+      label: categoryIdToName[c],
+      backgroundColor: stringToColour(c),
+      borderColor: stringToColour(c),
+      data: keys.map((key) => data[key][c] ? (delta ? data[key][c].diff : data[key][c][0].value) : null),
+      borderWidth: 1,
+      hidden: hiddenCategories.includes(c)
+    })), d => d.data[d.data.length - 1]);
+
+    _chart.data = {
+      labels: keys,
+      datasets
+    };
+
+    _chart.update();
+}
+
+const stringToColour = (str) => {
   var hash = 0;
   for (var i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -56,4 +68,4 @@ var stringToColour = function(str) {
   return colour;
 }
 
-export { drawChart };
+export { buildChart, updateChart };
