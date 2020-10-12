@@ -11,14 +11,12 @@
   "license": "ISC",
   "dependencies": {
     "chart.js": "^2.9.3",
-    "lodash": "^4.17.15",
-    "node-fetch": "^2.6.0"
+    "lodash": "^4.17.20",
+    "node-fetch": "^2.6.1"
   },
   "devDependencies": {
     "webpack": "^4.42.1",
     "webpack-cli": "^3.3.11",
-    "webpack-dev-server": "^3.10.3"
+    "webpack-dev-server": "^3.11.0"
   }
 }
-
-
