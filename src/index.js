@@ -50,6 +50,11 @@ const getData = async (code) => {
     let formatedData = {};
 
     for (let date in raw_json) {
+        // Hotfix for https://github.com/DiAifU/CoronaLive/issues/1
+        if (date.includes("_")) {
+            console.log("Badly formatted date " + date + ", cleaning it");
+            date = date.replace("_", "-");
+        }
         const mergedData = {};
 
         raw_json[date].forEach(({
