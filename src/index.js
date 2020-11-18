@@ -40,6 +40,9 @@ const getData = async (code) => {
         sourceNom: nom
     }));
 
+    // Hotfix for https://github.com/DiAifU/CoronaLive/issues/1
+    raw_json = _.forEach(raw_json, a => a.date = a.date.replace("_", "-"));
+
     // Order descending
     raw_json = _.orderBy(raw_json, a => a.date, 'desc');
 
@@ -50,11 +53,6 @@ const getData = async (code) => {
     let formatedData = {};
 
     for (let date in raw_json) {
-        // Hotfix for https://github.com/DiAifU/CoronaLive/issues/1
-        if (date.includes("_")) {
-            console.log("Badly formatted date " + date + ", cleaning it");
-            date = date.replace("_", "-");
-        }
         const mergedData = {};
 
         raw_json[date].forEach(({
