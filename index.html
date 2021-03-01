@@ -6,13 +6,23 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
   </head>
   <body>
-    <div style="max-width: 1200px; max-height: 800px; margin: auto;">
-      <canvas id="chart" width="1200" height="800"></canvas>
-    </div>
     <div id="root">
-    <span style="display: block;padding: 20px;">
-      <input type="checkbox" style="font-weight: bold;margin-left: 5px;margin-right: 5px;" id="deltaCheckBox">Afficher les delta</input>
-    </span>
+      <span style="display: block;padding: 20px;">
+        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+          <label class="btn btn-secondary active">
+            <input type="radio" name="options" id="normal" autocomplete="off" checked> Normal
+          </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="options" id="delta" autocomplete="off"> Delta
+          </label>
+          <label class="btn btn-secondary">
+            <input type="radio" name="options" id="moyGliss7jours" autocomplete="off"> 7 jours glissants
+          </label>
+        </div>
+      </span>
+      <div style="max-width: 1400px; max-height: 600px; margin: auto;">
+        <canvas id="chart" width="1400" height="600"></canvas>
+      </div>
     </div>
     <script src="vendors~main.js"></script>
     <script src="main.js"></script>

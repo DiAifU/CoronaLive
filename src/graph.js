@@ -15,7 +15,7 @@ const buildChart = (ctx, onHiddenChanged) => {
     options: {
       tooltips: {
         intersect: false,
-        mode: 'index'
+        mode: 'index',
       },
       legend: {
         onClick: (e, legendItem) => {
@@ -24,12 +24,15 @@ const buildChart = (ctx, onHiddenChanged) => {
             onHiddenChanged(nameToCategoryId[dataset.label], dataset.hidden === false)
           }
         }
+      },
+      animation: {
+        duration: 0
       }
     }
   });
 }
 
-const updateChart = (data, delta, hiddenCategories = []) => {
+const updateChart = (data, mode, hiddenCategories = []) => {
   if (_chart === null) {
     throw "Chart was not previously built";
   }
@@ -42,7 +45,7 @@ const updateChart = (data, delta, hiddenCategories = []) => {
       label: categoryIdToName[c],
       backgroundColor: stringToColour(c),
       borderColor: stringToColour(c),
-      data: keys.map((key) => data[key][c] ? (delta ? data[key][c].diff : data[key][c][0].value) : null),
+      data: keys.map((key) => data[key][c] ? (mode == 'delta' ? data[key][c].diff : mode == 'moyGliss7jours' ? data[key][c].moyGliss7jours : data[key][c][0].value) : null),
       borderWidth: 1,
       hidden: hiddenCategories.includes(c)
     })), d => d.data[d.data.length - 1]);

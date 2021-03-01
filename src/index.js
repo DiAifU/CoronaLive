@@ -13,7 +13,7 @@ Date.prototype.addDays = function(days) {
 const getData = async (code) => {
     const resp = await fetch('https://raw.githubusercontent.com/opencovid19-fr/data/master/dist/chiffres-cles.json');
     let raw_json = await resp.json();
-    raw_json = _.filter(raw_json, a => a.code === code && a.source.nom !== 'OpenCOVID19-fr');
+    raw_json = _.filter(raw_json, a => a.code === code /* && a.source.nom !== 'OpenCOVID19-fr' */);
 
     // Get important info
     raw_json = _.map(raw_json, ({
@@ -101,12 +101,26 @@ const getData = async (code) => {
     }
 
     Object.keys(formatedData).forEach(date => {
-        var yesterday = new Date(date).addDays(-1).toISOString().substring(0, 10);
-        Object.keys(formatedData[date]).forEach(category => {
-            if (formatedData[yesterday] && formatedData[yesterday][category]) {
-                formatedData[date][category].diff = formatedData[date][category][0].value - formatedData[yesterday][category][0].value
+        var dateObj = new Date(date);
+        const data = formatedData[date];
+        for (let i = 1; i < 8; i++) {
+            var dayBefore = dateObj.addDays(-i).toISOString().substring(0, 10);
+            var dayBeforeData = formatedData[dayBefore];
+            if (!dayBeforeData) {
+                break;
             }
-        });
+            Object.keys(data).forEach(category => {
+                if (dayBeforeData[category]) {
+                    if (i == 1) {
+                        data[category].diff = data[category][0].value - dayBeforeData[category][0].value;
+                    }
+                    data[category].moyGliss7jours = (data[category].moyGliss7jours || 0) + dayBeforeData[category][0].value;
+                }
+            });
+        }
+
+        Object.keys(data).forEach(category => data[category].moyGliss7jours = Math.round(data[category].moyGliss7jours/7));
+
     });
 
     return formatedData;
@@ -157,19 +171,25 @@ const updateUrl = (queryString) => {
 (async function() {
     var urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code') || 'FRA';
-    let delta = urlParams.get('type') === 'delta';
+    const modes = ['normal', 'delta', 'moyGliss7jours'];
     let hiddenCurves = urlParams.has('hidden') ? urlParams.get('hidden').split(',') : [];
+    const from = urlParams.has('from') ? new Date(urlParams.get('from')) : new Date("2020-01-01");
 
     const formatedData = await getData(code);
     console.log(formatedData);
 
+    console.log(from);
+    var filteredData = Object.keys(formatedData).reduce((prev, curr) => {
+        if (new Date(curr) > from) {
+            return { ...prev, [curr]: formatedData[curr] };
+        }
+        return prev;
+    }, {});
+    console.log(filteredData);
+
     // Set root inner HTML from built data 
     const root = document.querySelector('#root');
-    root.innerHTML = root.innerHTML + getListHtml(formatedData);    
-
-    // Set delta checkbox state based on query param value (or default)
-    const deltaCheckbox = document.querySelector('#deltaCheckBox');
-    deltaCheckbox.checked = delta;
+    root.innerHTML = root.innerHTML + getListHtml(filteredData);    
     
     // Create callback to be triggered when hidden categories changes
     const onHiddenChanged = (type, hidden) => {
@@ -193,29 +213,34 @@ const updateUrl = (queryString) => {
 
         updateUrl(urlParams.toString().replace(/%2C/g,","));
 
-        updateChart(formatedData, delta, hiddenCurves);
+        updateChart(filteredData, mode, hiddenCurves);
     }
 
     // Get the context and build the chart
     const ctx = document.getElementById('chart').getContext('2d');
     buildChart(ctx, onHiddenChanged);
 
-    // Listen to delta checbox checked state changes
-    deltaCheckbox.addEventListener('change', e => {
-        if (e.target.checked) {
-            urlParams.set('type', 'delta');
-            delta = true;
+    function switchTo(newMode) {
+        if (newMode != modes[0]) {
+            urlParams.set('mode', newMode);
         }
         else {
-            urlParams.delete('type');
-            delta = false;
+            urlParams.delete('mode');
         }
-
         updateUrl(urlParams.toString().replace(/%2C/g,","));
+        updateChart(filteredData, newMode, hiddenCurves);
+        document.getElementById(newMode).parentElement.classList.add("active");
+        _.forEach(modes.filter(a => a != newMode), a => {
+            document.getElementById(a).parentElement.classList.remove("active");
+        });
+    }
 
-        updateChart(formatedData, delta, hiddenCurves);
-    });
+    normal.addEventListener('click', () => switchTo('normal'));
+    delta.addEventListener('click', () => switchTo('delta'));
+    moyGliss7jours.addEventListener('click', () => switchTo('moyGliss7jours'));
 
     // Make initial update to set chart data
-    updateChart(formatedData, delta, hiddenCurves);
+    const modeUrl = urlParams.get('mode');
+    const mode = modeUrl ? _.find(modes, a => a == modeUrl) : modes[0];
+    updateChart(filteredData, mode, hiddenCurves);
 })()
